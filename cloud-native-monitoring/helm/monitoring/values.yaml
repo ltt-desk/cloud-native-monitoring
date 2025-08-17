@@ -1,0 +1,49 @@
+environment: production
+
+prometheus:
+  image: prom/prometheus:v2.37.0
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  retention: 15d
+  storage:
+    size: 20Gi
+
+grafana:
+  image: grafana/grafana:9.0.5
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  storage:
+    size: 10Gi
+  adminPassword: ""  # Will be generated if not set
+
+alertmanager:
+  image: prom/alertmanager:v0.24.0
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  storage:
+    size: 5Gi
+  config:
+    global:
+      smtp_smarthost: 'smtp.example.com:587'
+      smtp_from: 'alerts@example.com'
+      smtp_auth_username: 'alerts@example.com'
+      smtp_auth_password: ''
+      smtp_require_tls: true

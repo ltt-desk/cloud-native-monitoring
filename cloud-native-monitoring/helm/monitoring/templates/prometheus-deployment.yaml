@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "monitoring.fullname" . }}-prometheus
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+spec:
+  replicas: {{ .Values.prometheus.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "monitoring.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: prometheus
+  template:
+    metadata:
+      labels:
+        {{- include "monitoring.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: {{ .Values.prometheus.image }}
+        args:
+          - --config.file=/etc/prometheus/prometheus.yml
+          - --storage.tsdb.path=/prometheus
+          - --storage.tsdb.retention.time={{ .Values.prometheus.retention }}
+          - --web.console.libraries=/etc/prometheus/console_libraries
+          - --web.console.templates=/etc/prometheus/consoles
+          - --web.enable-lifecycle
+        ports:
+        - containerPort: 9090
+          name: http
+        resources:
+          {{- toYaml .Values.prometheus.resources | nindent 10 }}
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/prometheus
+        - name: rules-volume
+          mountPath: /etc/prometheus/rules
+        - name: storage-volume
+          mountPath: /prometheus
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: config-volume
+        configMap:
+          name: {{ include "monitoring.fullname" . }}-prometheus-config
+      - name: rules-volume
+        configMap:
+          name: {{ include "monitoring.fullname" . }}-prometheus-rules
+      - name: storage-volume
+        persistentVolumeClaim:
+          claimName: {{ include "monitoring.fullname" . }}-prometheus-storage

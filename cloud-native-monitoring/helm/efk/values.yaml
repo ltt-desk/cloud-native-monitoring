@@ -1,0 +1,37 @@
+environment: production
+
+elasticsearch:
+  image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+  replicas: 3
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  storage:
+    size: 50Gi
+  clusterName: efk-cluster
+  minimumMasterNodes: 2
+
+fluentd:
+  image: fluent/fluentd-kubernetes-daemonset:v1.14-debian-elasticsearch7-1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+kibana:
+  image: docker.elastic.co/kibana/kibana:7.17.0
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi

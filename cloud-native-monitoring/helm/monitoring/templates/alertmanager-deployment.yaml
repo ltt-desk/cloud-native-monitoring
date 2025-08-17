@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "monitoring.fullname" . }}-alertmanager
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+spec:
+  replicas: {{ .Values.alertmanager.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "monitoring.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: alertmanager
+  template:
+    metadata:
+      labels:
+        {{- include "monitoring.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: alertmanager
+    spec:
+      containers:
+      - name: alertmanager
+        image: {{ .Values.alertmanager.image }}
+        args:
+          - --config.file=/etc/alertmanager/alertmanager.yml
+          - --storage.path=/alertmanager
+        ports:
+        - containerPort: 9093
+          name: http
+        resources:
+          {{- toYaml .Values.alertmanager.resources | nindent 10 }}
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/alertmanager
+        - name: storage-volume
+          mountPath: /alertmanager
+        livenessProbe:
+          httpGet:
+            path: /-/healthy
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: config-volume
+        configMap:
+          name: {{ include "monitoring.fullname" . }}-alertmanager-config
+      - name: storage-volume
+        persistentVolumeClaim:
+          claimName: {{ include "monitoring.fullname" . }}-alertmanager-storage
